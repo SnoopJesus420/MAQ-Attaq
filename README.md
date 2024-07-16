@@ -21,5 +21,5 @@ This approach is intended for scenarios where a domain admin session is identifi
   ```
   4. Execute the setup script
   ```
-  python3 SCRIPT-EDIT.py
+  python3 depends.py
   ```   
