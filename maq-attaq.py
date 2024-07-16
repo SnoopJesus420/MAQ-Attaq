@@ -24,7 +24,7 @@ def check_maq(domain, username, password):
 
 def help():
     help_text = """
-Usage: python automate_steps.py
+Usage: python maq-attaq.py
 
 This script automates the process of identifying machine account quotas, creating machine accounts, configuring NTLM relay, coercing target computers, obtaining NTLM hashes, modifying attributes, and dumping SAM and LSA secrets.
 
