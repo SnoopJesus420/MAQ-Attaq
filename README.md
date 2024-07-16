@@ -28,3 +28,9 @@ This approach is intended for scenarios where a domain admin session is identifi
 ```
 python3 maq-attaq.py
 ```
+
+# Resources
+https://www.thehacker.recipes/ad/movement/domain-settings/machineaccountquota <br>
+https://book.hacktricks.xyz/windows-hardening/active-directory-methodology/resource-based-constrained-delegation <br>
+https://ppn.snovvcrash.rocks/pentest/infrastructure/ad/ad-cs-abuse/esc8
+
