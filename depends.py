@@ -41,7 +41,7 @@ def download_and_extract(url, extract_to='.'):
 def clone_repository(repo_url, clone_to):
     if os.path.exists(clone_to):
         print(f"Directory {clone_to} already exists. Cleaning up the directory.")
-        subprocess.check_call(['rm', '-rf', clone_to])
+        shutil.rmtree(clone_to)
     subprocess.check_call(['git', 'clone', repo_url, clone_to])
 
 def install_netexec():
@@ -84,25 +84,11 @@ def install_non_python_dependencies():
                 print(f"{tool}.py not found. Downloading and installing...")
                 download_and_extract(url, home_dir)
 
-    if not check_script_installed("netexec.py"):
+    if not shutil.which("nxc"):
         print("NetExec not found. Installing via pipx...")
         install_netexec()
 
-    # Download scanner.py for checking machine account quota
-    scanner_url = "https://raw.githubusercontent.com/Ridter/noPac/main/scanner.py"
-    scanner_path = os.path.join(home_dir, "scanner.py")
-    if not os.path.exists(scanner_path):
-        print("Downloading scanner.py...")
-        download_file(scanner_url, scanner_path)
-
 def verify_installation():
-    # Check if scanner.py is installed
-    home_dir = os.path.expanduser("~")
-    scanner_path = os.path.join(home_dir, "scanner.py")
-    if not os.path.exists(scanner_path):
-        print(f"Error: scanner.py is not installed. Please ensure it is installed and accessible in the PATH.")
-        return False
-
     print("All required tools are installed.")
     return True
 
