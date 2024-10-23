@@ -12,7 +12,7 @@ def run_command(command):
     return result.stdout.strip()
 
 def check_maq(dc_ip, username, password):
-    output = run_command(f"maq-attack ldap {dc_ip} -u {username} -p {password} -M maq")
+    output = run_command(f"nxc ldap {dc_ip} -u {username} -p '{password}' -M maq")
     try:
         maq_value = int(output.split("MachineAccountQuota:")[1].split()[0])
         return maq_value
