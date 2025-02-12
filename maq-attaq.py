@@ -1,3 +1,4 @@
+# Written by SnoopJesus420 -> https://github.com/SnoopJesus420/
 import subprocess
 import getpass
 import os
